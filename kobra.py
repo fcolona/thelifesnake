@@ -19,6 +19,7 @@
 
 import random
 import sys
+from pathlib import Path
 
 import pygame
 
@@ -50,12 +51,13 @@ pygame.init()
 clock = pygame.time.Clock()
 arena = pygame.display.set_mode((WIDTH, HEIGHT))
 
-BIG_FONT = pygame.font.Font(
-    "assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 8)
-)
-SMALL_FONT = pygame.font.Font(
-    "assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 20)
-)
+# Resolve assets relative to this file, so the game can be started from
+# any working directory.
+ASSETS_DIR = Path(__file__).resolve().parent / "assets"
+FONT_PATH = ASSETS_DIR / "font" / "GetVoIP-Grotesque.ttf"
+
+BIG_FONT = pygame.font.Font(FONT_PATH, int(WIDTH / 8))
+SMALL_FONT = pygame.font.Font(FONT_PATH, int(WIDTH / 20))
 
 pygame.display.set_caption(WINDOW_TITLE)
 
@@ -220,7 +222,15 @@ while True:
             sys.exit()
 
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_DOWN:
+            if event.key in (pygame.K_q, pygame.K_ESCAPE):
+                pygame.quit()
+                sys.exit()
+            elif event.key == pygame.K_p:
+                game_on = not game_on
+            # Ignore movement keys while paused.
+            elif not game_on:
+                continue
+            elif event.key == pygame.K_DOWN:
                 snake.ymov = 1
                 snake.xmov = 0
             elif event.key == pygame.K_UP:
@@ -232,11 +242,6 @@ while True:
             elif event.key == pygame.K_LEFT:
                 snake.ymov = 0
                 snake.xmov = -1
-            elif event.key in (pygame.K_q, pygame.K_ESCAPE):
-                pygame.quit()
-                sys.exit()
-            elif event.key == pygame.K_p:
-                game_on = not game_on
 
     # While paused, do not advance the snake or redraw the arena.
     # The existing objects are still displayed below.
