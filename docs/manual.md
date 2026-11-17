@@ -42,8 +42,8 @@ The Game
 --------
 
 Guide a snake through a rectangular arena, collecting apples that appear at
-random positions. Each apple increases your score and makes the snake grow
-longer.
+random unoccupied grid positions within the arena. Each apple increases your
+score and makes the snake grow longer.
 
 But beware! The arena borders are electrified, and the snake is poisonous to
 itself. Hitting a wall or biting its own tail ends the game.

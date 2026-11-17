@@ -111,13 +111,10 @@ class Snake:
     """Track the snake's segments, movement, and collisions."""
 
     def __init__(self):
-        self.x, self.y = GRID_SIZE, GRID_SIZE
+        self.x = random.randrange(2 * GRID_SIZE, WIDTH - 2 * GRID_SIZE, GRID_SIZE)
+        self.y = random.randrange(2 * GRID_SIZE, HEIGHT - 2 * GRID_SIZE, GRID_SIZE)
 
-        # Each movement component tells how many grid cells to advance:
-        # -1 for left/up, 0 for no movement, and 1 for right/down.
-        # Starting with (1, 0) makes the snake move to the right.
-        self.xmov = 1
-        self.ymov = 0
+        self._set_random_direction()
 
         # Rect stores a segment's position and size. The tail is a list
         # of earlier head positions, with the newest segment first.
@@ -125,6 +122,18 @@ class Snake:
         self.tail = []
         self.alive = True
         self.got_apple = False
+
+    def _set_random_direction(self):
+        """Choose a direction with at least half the grid as clearance."""
+        directions = ((0, -1), (0, 1), (-1, 0), (1, 0))
+        clearance = min(WIDTH, HEIGHT) // GRID_SIZE // 2 * GRID_SIZE
+        safe_directions = [
+            (xmov, ymov)
+            for xmov, ymov in directions
+            if 0 <= self.x + xmov * clearance < WIDTH
+            and 0 <= self.y + ymov * clearance < HEIGHT
+        ]
+        self.xmov, self.ymov = random.choice(safe_directions)
 
     def update(self):
         """Check collisions, restart if needed, and move the snake."""
@@ -150,16 +159,16 @@ class Snake:
             pygame.draw.rect(arena, DEAD_HEAD_COLOR, snake.head)
             center_prompt("Game Over", "Press to restart")
 
-            # Restore the starting position and direction.
-            self.x, self.y = GRID_SIZE, GRID_SIZE
+            # Choose a new random position and direction.
+            self.x = random.randrange(2 * GRID_SIZE, WIDTH - 2 * GRID_SIZE, GRID_SIZE)
+            self.y = random.randrange(2 * GRID_SIZE, HEIGHT - 2 * GRID_SIZE, GRID_SIZE)
             self.head = pygame.Rect(self.x, self.y, GRID_SIZE, GRID_SIZE)
             self.tail = []
-            self.xmov = 1
-            self.ymov = 0
+            self._set_random_direction()
             self.alive = True
             self.got_apple = False
 
-            apple = Apple()
+            apple = Apple(self)
 
         # To make the tail follow, remember where the head was before
         # moving it. Normally the last tail segment is then removed, so
@@ -183,15 +192,28 @@ class Snake:
 class Apple:
     """Represent an apple in the arena."""
 
-    def __init__(self):
-        # Apples occupy grid cells, just like the snake's segments.
-        self.x = int(random.randint(0, WIDTH) / GRID_SIZE) * GRID_SIZE
-        self.y = int(random.randint(0, HEIGHT) / GRID_SIZE) * GRID_SIZE
-        self.rect = pygame.Rect(self.x, self.y, GRID_SIZE, GRID_SIZE)
+    def __init__(self, snake):
+        # Choose from valid grid cells not occupied by the snake.
+        occupied_cells = {(snake.head.x, snake.head.y)}
+        occupied_cells.update(
+            (segment.x, segment.y) for segment in snake.tail
+        )
+        available_cells = [
+            (x, y)
+            for x in range(0, WIDTH, GRID_SIZE)
+            for y in range(0, HEIGHT, GRID_SIZE)
+            if (x, y) not in occupied_cells
+        ]
+
+        self.rect = None
+        if available_cells:
+            x, y = random.choice(available_cells)
+            self.rect = pygame.Rect(x, y, GRID_SIZE, GRID_SIZE)
 
     def update(self):
         """Draw the apple."""
-        pygame.draw.rect(arena, APPLE_COLOR, self.rect)
+        if self.rect is not None:
+            pygame.draw.rect(arena, APPLE_COLOR, self.rect)
 
 
 # Start a game.
@@ -211,7 +233,7 @@ def start_game():
     draw_grid()
 
     snake = Snake()
-    apple = Apple()
+    apple = Apple(snake)
 
     center_prompt(WINDOW_TITLE, "Press to start")
 
@@ -276,9 +298,9 @@ while True:
 
     # Collecting an apple schedules growth on the next snake update.
     # A new apple then appears for the player to collect.
-    if snake.head.x == apple.x and snake.head.y == apple.y:
+    if apple.rect is not None and snake.head.colliderect(apple.rect):
         snake.got_apple = True
-        apple = Apple()
+        apple = Apple(snake)
 
     # Show this frame and limit how often the loop runs. GAME_SPEED
     # currently controls both drawing and movement.
