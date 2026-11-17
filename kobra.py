@@ -92,7 +92,7 @@ def center_prompt(title, subtitle):
             pygame.quit()
             sys.exit()
 
-    if event.key == pygame.K_q:
+    if event.key in (pygame.K_q, pygame.K_ESCAPE):
         pygame.quit()
         sys.exit()
 
@@ -244,7 +244,7 @@ while True:
             sys.exit()
 
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_q:
+            if event.key in (pygame.K_q, pygame.K_ESCAPE):
                 pygame.quit()
                 sys.exit()
             elif event.key == pygame.K_p:
